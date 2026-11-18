@@ -12,9 +12,9 @@
             "comment": "Файл календаря для Safari — не открывать приложение"
           },
           {
-            "/": "/otchet50/add/sw.js",
+            "/": "/otchet50/add/*.js",
             "exclude": true,
-            "comment": "Скрипт страницы"
+            "comment": "Скрипты страницы"
           },
           {
             "/": "/otchet50/add/*",

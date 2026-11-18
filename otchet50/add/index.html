@@ -54,6 +54,12 @@
   <a class="btn alt" id="google" target="_blank" rel="noopener">
     <span data-l="ru">Google Календарь</span><span data-l="en">Google Calendar</span><span data-l="pt">Google Agenda</span><span data-l="ro">Google Calendar</span>
   </a>
+  <p class="muted" id="inapp" hidden style="text-align:center; margin-top:12px">
+    <span data-l="ru">Кнопка не сработала? Откройте эту страницу в Safari: меню ⋯ или ↗ → «Открыть в Safari».</span>
+    <span data-l="en">Button didn’t work? Open this page in Safari: the ⋯ or ↗ menu → “Open in Safari”.</span>
+    <span data-l="pt">O botão não funcionou? Abra esta página no Safari: menu ⋯ ou ↗ → “Abrir no Safari”.</span>
+    <span data-l="ro">Butonul nu a mers? Deschide pagina în Safari: meniul ⋯ sau ↗ → „Deschide în Safari”.</span>
+  </p>
   <p class="muted" style="text-align:center; margin-top:16px">
     <span data-l="ru">С приложением Отчёт50 встреча сразу добавится в ваш план недели — просто наведите камеру на код ещё раз.</span>
     <span data-l="en">With the Report50 app, the meeting goes straight into your week plan — just scan the code again.</span>
@@ -75,45 +81,22 @@
 </section>
 </main>
 
+<script src="meeting.js"></script>
 <script>
-// Встреча из QR-кода приложения: ?d=2026-11-20&t=10:00&m=60&a=preaching&p=Место&n=Имя
-// Время «плавающее» (без пояса) — у напарника то же, что на часах.
 (function () {
-  var ACT = {
-    preaching:    { ru: "Проповедь", en: "Field service", pt: "Pregação", ro: "Predicare" },
-    cart:         { ru: "Проповедь в общественных местах", en: "Public witnessing", pt: "Testemunho público", ro: "Mărturie publică" },
-    cityCart:     { ru: "Проповедь в общественных местах крупных городов", en: "Metropolitan public witnessing", pt: "Testemunho público em áreas metropolitanas", ro: "Mărturie publică în orașele mari" },
-    group:        { ru: "Группа", en: "Group", pt: "Grupo", ro: "Grup" },
-    territory:    { ru: "Территория", en: "Territory", pt: "Território", ro: "Teritoriu" },
-    section:      { ru: "Участок", en: "Section", pt: "Território pessoal", ro: "Sector" },
-    study:        { ru: "Изучение", en: "Bible study", pt: "Estudo", ro: "Studiu" },
-    returnVisits: { ru: "Повторные посещения", en: "Return visits", pt: "Revisitas", ro: "Vizite ulterioare" },
-    letters:      { ru: "Письма и звонки", en: "Letters and phone calls", pt: "Cartas e telefonemas", ro: "Scrisori și telefoane" },
-    assignment:   { ru: "А-2", en: "A-2", pt: "A-2", ro: "A-2" }
-  };
   var FROM = { ru: "{n} приглашает", en: "{n} invites you", pt: "{n} convida você", ro: "{n} te invită" };
   var LOCALE = { ru: "ru-RU", en: "en-US", pt: "pt-BR", ro: "ro-RO" };
-
   var q = new URLSearchParams(location.search);
-  var d = /^(\d{4})-(\d{2})-(\d{2})$/.exec(q.get("d") || "");
-  var t = /^(\d{1,2}):(\d{2})$/.exec(q.get("t") || "");
-  var minutes = Math.min(Math.max(parseInt(q.get("m"), 10) || 60, 5), 720);
-  var act = ACT[q.get("a")] ? q.get("a") : "preaching";
-  // Пределы — как в приложении (PartnerInvite.placeLimit / nameLimit).
-  var place = (q.get("p") || "").trim().slice(0, 60);
-  var name = (q.get("n") || "").trim().slice(0, 40);
+  var meeting = Meeting.parse(q);
 
-  function pad(n) { return (n < 10 ? "0" : "") + n; }
-  function stamp(x) {
-    return x.getFullYear() + pad(x.getMonth() + 1) + pad(x.getDate()) + "T" + pad(x.getHours()) + pad(x.getMinutes()) + "00";
+  function lang() {
+    var l = document.documentElement.lang.slice(0, 2);
+    return LOCALE[l] ? l : "en";
   }
-  function esc(s) {
-    return s.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
-  }
-  var icsText = "";
 
-  // Файл календаря: через service worker (настоящий ответ text/calendar — iPhone сразу предлагает
-  // «Добавить в Календарь»), без него (встроенные браузеры мессенджеров) — скачать файл.
+  // Файл календаря — через service worker (настоящий ответ text/calendar: iPhone сразу предлагает
+  // «Добавить в Календарь»). Без него (встроенные браузеры мессенджеров) — скачать файл и подсказать
+  // открыть страницу в Safari.
   var swReady = ("serviceWorker" in navigator)
     ? navigator.serviceWorker.register("sw.js").then(function () { return navigator.serviceWorker.ready; })
         .catch(function () { return null; })
@@ -123,60 +106,40 @@
     e.preventDefault();
     swReady.then(function (reg) {
       if (reg && reg.active) {
-        location.href = "meeting.ics?ics=" + encodeURIComponent(icsText);
+        var p = new URLSearchParams();
+        ["d", "t", "m", "a", "p", "n"].forEach(function (k) { if (q.get(k)) p.set(k, q.get(k)); });
+        p.set("l", lang());
+        location.href = "meeting.ics?" + p.toString();
       } else {
+        document.getElementById("inapp").hidden = false;
         var a = document.createElement("a");
-        a.href = URL.createObjectURL(new Blob([icsText], { type: "text/calendar" }));
+        a.href = URL.createObjectURL(new Blob([Meeting.ics(meeting, lang())], { type: "text/calendar" }));
         a.download = "meeting.ics";
         document.body.appendChild(a);
         a.click();
         a.remove();
+        setTimeout(function () { URL.revokeObjectURL(a.href); }, 10000);
       }
     });
   }
 
-  function lang() {
-    var l = document.documentElement.lang.slice(0, 2);
-    return LOCALE[l] ? l : "en";
-  }
-
   document.addEventListener("DOMContentLoaded", function () {
-    if (!d || !t) { document.getElementById("bad").hidden = false; return; }
-    var start = new Date(+d[1], +d[2] - 1, +d[3], +t[1], +t[2]);
-    // 31 февраля или 25:00 Date молча переносит на другой день — такие ссылки, как и приложение, не принимаем.
-    if (isNaN(start) || start.getDate() !== +d[3] || start.getMonth() !== +d[2] - 1
-        || +t[1] > 23 || +t[2] > 59) {
-      document.getElementById("bad").hidden = false; return;
-    }
-    var end = new Date(start.getTime() + minutes * 60000);
+    if (!meeting) { document.getElementById("bad").hidden = false; return; }
 
     function render() {
       var l = lang();
-      var title = ACT[act][l];
-      document.getElementById("from").textContent = name ? FROM[l].replace("{n}", name) : "";
-      document.getElementById("title").textContent = title;
-      var day = start.toLocaleDateString(LOCALE[l], { weekday: "short", day: "numeric", month: "long" });
+      document.getElementById("from").textContent = meeting.name ? FROM[l].replace("{n}", meeting.name) : "";
+      document.getElementById("title").textContent = Meeting.title(meeting, l);
+      var day = meeting.start.toLocaleDateString(LOCALE[l], { weekday: "short", day: "numeric", month: "long" });
       var time = function (x) { return x.toLocaleTimeString(LOCALE[l], { hour: "2-digit", minute: "2-digit" }); };
-      document.getElementById("when").textContent = day + " · " + time(start) + "–" + time(end);
-      document.getElementById("where").textContent = place;
-
-      var summary = title + (name ? " · " + name : "");
-      var ics = [
-        "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Report50//EN", "BEGIN:VEVENT",
-        "UID:" + stamp(start) + "-" + Math.random().toString(36).slice(2) + "@like4myself.github.io",
-        "DTSTAMP:" + new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+/, ""),
-        "SUMMARY:" + esc(summary),
-        "DTSTART:" + stamp(start), "DTEND:" + stamp(end)
-      ];
-      if (place) ics.push("LOCATION:" + esc(place));
-      ics.push("END:VEVENT", "END:VCALENDAR");
-      icsText = ics.join("\r\n");
+      document.getElementById("when").textContent = day + " · " + time(meeting.start) + "–" + time(meeting.end);
+      document.getElementById("where").textContent = meeting.place;
 
       var g = new URL("https://calendar.google.com/calendar/render");
       g.searchParams.set("action", "TEMPLATE");
-      g.searchParams.set("text", summary);
-      g.searchParams.set("dates", stamp(start) + "/" + stamp(end));
-      if (place) g.searchParams.set("location", place);
+      g.searchParams.set("text", Meeting.summary(meeting, l));
+      g.searchParams.set("dates", Meeting.stamp(meeting.start) + "/" + Meeting.stamp(meeting.end));
+      if (meeting.place) g.searchParams.set("location", meeting.place);
       document.getElementById("google").href = g.toString();
     }
 
@@ -184,6 +147,8 @@
     document.getElementById("ics").addEventListener("click", openCalendar);
     document.getElementById("meet").hidden = false;
     document.getElementById("actions").hidden = false;
+    // Без service worker кнопка календаря может не сработать — подсказка про Safari видна сразу.
+    swReady.then(function (reg) { if (!reg) document.getElementById("inapp").hidden = false; });
     // Сменили язык кнопкой — перерисовать дату и название.
     document.querySelectorAll(".langs button").forEach(function (b) {
       b.addEventListener("click", function () { setTimeout(render, 0); });
