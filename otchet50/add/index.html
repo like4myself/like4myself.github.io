@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="ru" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Отчёт50 — встреча</title>
+<meta name="title-ru" content="Отчёт50 — встреча">
+<meta name="title-en" content="Report50 — Meeting">
+<meta name="title-pt" content="Relatório50 — Saída">
+<meta name="title-ro" content="Raport50 — Întâlnire">
+<link rel="icon" href="../icon.png">
+<link rel="apple-touch-icon" href="../icon.png">
+<link rel="stylesheet" href="../../assets/site.css">
+<script src="../../assets/lang.js"></script>
+<style>
+  .meet { text-align: center; padding: 24px 20px; }
+  .meet .from { color: var(--muted); margin: 0 0 6px; }
+  .meet .title { font-size: 24px; font-weight: 700; margin: 0; line-height: 1.25; }
+  .meet .when { font-size: 19px; margin: 8px 0 0; }
+  .meet .where { color: var(--muted); margin: 4px 0 0; }
+  .btn { display: block; width: 100%; font: inherit; font-weight: 600; text-align: center; text-decoration: none;
+         border-radius: 14px; padding: 14px 16px; margin: 10px 0 0; cursor: pointer; border: 0; }
+  .btn.main { background: var(--accent); color: var(--card); }
+  .btn.alt { background: var(--accent-soft); color: var(--accent); }
+  .bad { text-align: center; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+<header>
+  <img class="icon" src="../icon.png" alt="" width="88" height="88">
+  <h1><span data-l="ru">Отчёт50</span><span data-l="en">Report50</span><span data-l="pt">Relatório50</span><span data-l="ro">Raport50</span></h1>
+  <div class="langs" role="group" aria-label="Language">
+    <button type="button" data-set="ru">RU</button>
+    <button type="button" data-set="en">EN</button>
+    <button type="button" data-set="pt">PT</button>
+    <button type="button" data-set="ro">RO</button>
+  </div>
+</header>
+
+<section class="meet" id="meet" hidden>
+  <p class="from" id="from"></p>
+  <p class="title" id="title"></p>
+  <p class="when" id="when"></p>
+  <p class="where" id="where"></p>
+</section>
+
+<div id="actions" hidden>
+  <a class="btn main" id="ics" download="meeting.ics">
+    <span data-l="ru">Добавить в Календарь</span><span data-l="en">Add to Calendar</span><span data-l="pt">Adicionar ao Calendário</span><span data-l="ro">Adaugă în Calendar</span>
+  </a>
+  <a class="btn alt" id="google" target="_blank" rel="noopener">
+    <span data-l="ru">Google Календарь</span><span data-l="en">Google Calendar</span><span data-l="pt">Google Agenda</span><span data-l="ro">Google Calendar</span>
+  </a>
+  <p class="muted" style="text-align:center; margin-top:16px">
+    <span data-l="ru">С приложением Отчёт50 встреча сразу добавится в ваш план недели — просто наведите камеру на код ещё раз.</span>
+    <span data-l="en">With the Report50 app, the meeting goes straight into your week plan — just scan the code again.</span>
+    <span data-l="pt">Com o app Relatório50, a saída entra direto no seu plano da semana — é só ler o código de novo.</span>
+    <span data-l="ro">Cu aplicația Raport50, întâlnirea intră direct în planul săptămânii — scanează din nou codul.</span>
+  </p>
+  <p style="text-align:center"><a href="../" data-keep-lang>
+    <span data-l="ru">Об Отчёт50</span><span data-l="en">About Report50</span><span data-l="pt">Sobre o Relatório50</span><span data-l="ro">Despre Raport50</span>
+  </a></p>
+</div>
+
+<section class="bad" id="bad" hidden>
+  <p>
+    <span data-l="ru">Ссылка неполная — попросите напарника показать код ещё раз.</span>
+    <span data-l="en">This link is incomplete — ask your partner to show the code again.</span>
+    <span data-l="pt">O link está incompleto — peça ao seu parceiro para mostrar o código de novo.</span>
+    <span data-l="ro">Linkul este incomplet — roagă-ți partenerul să arate codul din nou.</span>
+  </p>
+</section>
+</main>
+
+<script>
+// Встреча из QR-кода приложения: ?d=2026-11-20&t=10:00&m=60&a=preaching&p=Место&n=Имя
+// Время «плавающее» (без пояса) — у напарника то же, что на часах.
+(function () {
+  var ACT = {
+    preaching:    { ru: "Проповедь", en: "Field service", pt: "Pregação", ro: "Predicare" },
+    cart:         { ru: "Проповедь в общественных местах", en: "Public witnessing", pt: "Testemunho público", ro: "Mărturie publică" },
+    cityCart:     { ru: "Проповедь в общественных местах крупных городов", en: "Metropolitan public witnessing", pt: "Testemunho público em áreas metropolitanas", ro: "Mărturie publică în orașele mari" },
+    group:        { ru: "Группа", en: "Group", pt: "Grupo", ro: "Grup" },
+    territory:    { ru: "Территория", en: "Territory", pt: "Território", ro: "Teritoriu" },
+    section:      { ru: "Участок", en: "Section", pt: "Território pessoal", ro: "Sector" },
+    study:        { ru: "Изучение", en: "Bible study", pt: "Estudo", ro: "Studiu" },
+    returnVisits: { ru: "Повторные посещения", en: "Return visits", pt: "Revisitas", ro: "Vizite ulterioare" },
+    letters:      { ru: "Письма и звонки", en: "Letters and phone calls", pt: "Cartas e telefonemas", ro: "Scrisori și telefoane" },
+    assignment:   { ru: "А-2", en: "A-2", pt: "A-2", ro: "A-2" }
+  };
+  var FROM = { ru: "{n} приглашает", en: "{n} invites you", pt: "{n} convida você", ro: "{n} te invită" };
+  var LOCALE = { ru: "ru-RU", en: "en-US", pt: "pt-BR", ro: "ro-RO" };
+
+  var q = new URLSearchParams(location.search);
+  var d = /^(\d{4})-(\d{2})-(\d{2})$/.exec(q.get("d") || "");
+  var t = /^(\d{1,2}):(\d{2})$/.exec(q.get("t") || "");
+  var minutes = Math.min(Math.max(parseInt(q.get("m"), 10) || 60, 5), 720);
+  var act = ACT[q.get("a")] ? q.get("a") : "preaching";
+  var place = (q.get("p") || "").trim().slice(0, 200);
+  var name = (q.get("n") || "").trim().slice(0, 60);
+
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  function stamp(x) {
+    return x.getFullYear() + pad(x.getMonth() + 1) + pad(x.getDate()) + "T" + pad(x.getHours()) + pad(x.getMinutes()) + "00";
+  }
+  function esc(s) {
+    return s.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
+  }
+  function lang() {
+    var l = document.documentElement.lang.slice(0, 2);
+    return LOCALE[l] ? l : "en";
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    if (!d || !t) { document.getElementById("bad").hidden = false; return; }
+    var start = new Date(+d[1], +d[2] - 1, +d[3], +t[1], +t[2]);
+    var end = new Date(start.getTime() + minutes * 60000);
+    if (isNaN(start)) { document.getElementById("bad").hidden = false; return; }
+
+    function render() {
+      var l = lang();
+      var title = ACT[act][l];
+      document.getElementById("from").textContent = name ? FROM[l].replace("{n}", name) : "";
+      document.getElementById("title").textContent = title;
+      var day = start.toLocaleDateString(LOCALE[l], { weekday: "short", day: "numeric", month: "long" });
+      var time = function (x) { return x.toLocaleTimeString(LOCALE[l], { hour: "2-digit", minute: "2-digit" }); };
+      document.getElementById("when").textContent = day + " · " + time(start) + "–" + time(end);
+      document.getElementById("where").textContent = place;
+
+      var summary = title + (name ? " · " + name : "");
+      var ics = [
+        "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Report50//EN", "BEGIN:VEVENT",
+        "UID:" + stamp(start) + "-" + Math.random().toString(36).slice(2) + "@like4myself.github.io",
+        "DTSTAMP:" + new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+/, ""),
+        "SUMMARY:" + esc(summary),
+        "DTSTART:" + stamp(start), "DTEND:" + stamp(end)
+      ];
+      if (place) ics.push("LOCATION:" + esc(place));
+      ics.push("END:VEVENT", "END:VCALENDAR");
+      document.getElementById("ics").href = "data:text/calendar;charset=utf-8," + encodeURIComponent(ics.join("\r\n"));
+
+      var g = new URL("https://calendar.google.com/calendar/render");
+      g.searchParams.set("action", "TEMPLATE");
+      g.searchParams.set("text", summary);
+      g.searchParams.set("dates", stamp(start) + "/" + stamp(end));
+      if (place) g.searchParams.set("location", place);
+      document.getElementById("google").href = g.toString();
+    }
+
+    render();
+    document.getElementById("meet").hidden = false;
+    document.getElementById("actions").hidden = false;
+    // Сменили язык кнопкой — перерисовать дату и название.
+    document.querySelectorAll(".langs button").forEach(function (b) {
+      b.addEventListener("click", function () { setTimeout(render, 0); });
+    });
+  });
+})();
+</script>
+</body>
+</html>

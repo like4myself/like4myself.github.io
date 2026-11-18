@@ -1,0 +1,13 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["427V34622A.com.maxblack.MyReport"],
+        "components": [
+          { "/": "/otchet50/add/*", "comment": "Запись от напарника по QR-коду" },
+          { "/": "/otchet50/add", "comment": "То же без косой черты" }
+        ]
+      }
+    ]
+  }
+}
