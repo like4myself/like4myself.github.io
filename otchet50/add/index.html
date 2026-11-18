@@ -48,7 +48,7 @@
 </section>
 
 <div id="actions" hidden>
-  <a class="btn main" id="ics" download="meeting.ics">
+  <a class="btn main" id="ics" href="#">
     <span data-l="ru">Добавить в Календарь</span><span data-l="en">Add to Calendar</span><span data-l="pt">Adicionar ao Calendário</span><span data-l="ro">Adaugă în Calendar</span>
   </a>
   <a class="btn alt" id="google" target="_blank" rel="noopener">
@@ -99,8 +99,9 @@
   var t = /^(\d{1,2}):(\d{2})$/.exec(q.get("t") || "");
   var minutes = Math.min(Math.max(parseInt(q.get("m"), 10) || 60, 5), 720);
   var act = ACT[q.get("a")] ? q.get("a") : "preaching";
-  var place = (q.get("p") || "").trim().slice(0, 200);
-  var name = (q.get("n") || "").trim().slice(0, 60);
+  // Пределы — как в приложении (PartnerInvite.placeLimit / nameLimit).
+  var place = (q.get("p") || "").trim().slice(0, 60);
+  var name = (q.get("n") || "").trim().slice(0, 40);
 
   function pad(n) { return (n < 10 ? "0" : "") + n; }
   function stamp(x) {
@@ -109,6 +110,31 @@
   function esc(s) {
     return s.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
   }
+  var icsText = "";
+
+  // Файл календаря: через service worker (настоящий ответ text/calendar — iPhone сразу предлагает
+  // «Добавить в Календарь»), без него (встроенные браузеры мессенджеров) — скачать файл.
+  var swReady = ("serviceWorker" in navigator)
+    ? navigator.serviceWorker.register("sw.js").then(function () { return navigator.serviceWorker.ready; })
+        .catch(function () { return null; })
+    : Promise.resolve(null);
+
+  function openCalendar(e) {
+    e.preventDefault();
+    swReady.then(function (reg) {
+      if (reg && reg.active) {
+        location.href = "meeting.ics?ics=" + encodeURIComponent(icsText);
+      } else {
+        var a = document.createElement("a");
+        a.href = URL.createObjectURL(new Blob([icsText], { type: "text/calendar" }));
+        a.download = "meeting.ics";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
+    });
+  }
+
   function lang() {
     var l = document.documentElement.lang.slice(0, 2);
     return LOCALE[l] ? l : "en";
@@ -117,8 +143,12 @@
   document.addEventListener("DOMContentLoaded", function () {
     if (!d || !t) { document.getElementById("bad").hidden = false; return; }
     var start = new Date(+d[1], +d[2] - 1, +d[3], +t[1], +t[2]);
+    // 31 февраля или 25:00 Date молча переносит на другой день — такие ссылки, как и приложение, не принимаем.
+    if (isNaN(start) || start.getDate() !== +d[3] || start.getMonth() !== +d[2] - 1
+        || +t[1] > 23 || +t[2] > 59) {
+      document.getElementById("bad").hidden = false; return;
+    }
     var end = new Date(start.getTime() + minutes * 60000);
-    if (isNaN(start)) { document.getElementById("bad").hidden = false; return; }
 
     function render() {
       var l = lang();
@@ -140,7 +170,7 @@
       ];
       if (place) ics.push("LOCATION:" + esc(place));
       ics.push("END:VEVENT", "END:VCALENDAR");
-      document.getElementById("ics").href = "data:text/calendar;charset=utf-8," + encodeURIComponent(ics.join("\r\n"));
+      icsText = ics.join("\r\n");
 
       var g = new URL("https://calendar.google.com/calendar/render");
       g.searchParams.set("action", "TEMPLATE");
@@ -151,6 +181,7 @@
     }
 
     render();
+    document.getElementById("ics").addEventListener("click", openCalendar);
     document.getElementById("meet").hidden = false;
     document.getElementById("actions").hidden = false;
     // Сменили язык кнопкой — перерисовать дату и название.
